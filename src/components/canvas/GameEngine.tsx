@@ -42,6 +42,9 @@ export default function GameEngine({ theme }: { theme: Theme }) {
   const barrelGlow = useRef<THREE.MeshStandardMaterial>(null);
   const ballMeshes = useRef<(THREE.Mesh | null)[]>([]);
 
+  useEffect(() => {
+    (window as unknown as { __mkCommitted?: boolean }).__mkCommitted = true;
+  }, []);
   useEffect(() => bindInput(), []);
   useEffect(() => {
     onKonami(() => {

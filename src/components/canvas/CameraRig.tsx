@@ -5,8 +5,8 @@ import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { useGame } from "@/game/store";
 
-const HERO_POS = new THREE.Vector3(-13.5, 2.1, 9.5);
-const HERO_TARGET = new THREE.Vector3(2.5, 1.0, -5);
+const HERO_POS = new THREE.Vector3(-8.2, 2.6, 16.8);
+const HERO_TARGET = new THREE.Vector3(1.8, 0.9, -7);
 const PLAY_POS = new THREE.Vector3(0, 7.0, 21.8);
 const PLAY_TARGET = new THREE.Vector3(0, 0.6, -3);
 

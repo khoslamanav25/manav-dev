@@ -1,12 +1,37 @@
 "use client";
 
-import { useRef } from "react";
+import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { Text } from "@react-three/drei";
 import { TARGETS, TARGET_HALF } from "@/game/targets";
 import { useGame } from "@/game/store";
 import type { Theme } from "@/game/themes";
+
+// Board labels are drawn to canvas textures synchronously — no font fetch,
+// nothing suspends (drei's <Text> suspends on a remote font load, which
+// blanked the whole scene).
+
+function makeLabelTexture(label: string): THREE.CanvasTexture {
+  const c = document.createElement("canvas");
+  c.width = 512;
+  c.height = 192;
+  const g = c.getContext("2d")!;
+  g.clearRect(0, 0, c.width, c.height);
+  g.fillStyle = "#ffffff";
+  g.textAlign = "center";
+  g.textBaseline = "middle";
+  let size = 84;
+  g.font = `800 ${size}px ui-monospace, Menlo, monospace`;
+  while (g.measureText(label.toUpperCase()).width > c.width - 60 && size > 30) {
+    size -= 6;
+    g.font = `800 ${size}px ui-monospace, Menlo, monospace`;
+  }
+  g.fillText(label.toUpperCase(), c.width / 2, c.height / 2 + 4);
+  const tex = new THREE.CanvasTexture(c);
+  tex.anisotropy = 4;
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
 
 function Board({
   itemId,
@@ -23,10 +48,15 @@ function Board({
   const aimed = useGame((s) => s.aimTargetId === itemId);
   const face = useRef<THREE.MeshStandardMaterial>(null);
   const group = useRef<THREE.Group>(null);
+  const labelTex = useMemo(() => makeLabelTexture(label), [label]);
 
   useFrame(({ clock }) => {
     if (face.current) {
-      const pulse = aimed ? 0.75 + Math.sin(clock.elapsedTime * 6) * 0.35 : visited ? 0.06 : 0.22;
+      const pulse = aimed
+        ? 0.75 + Math.sin(clock.elapsedTime * 6) * 0.35
+        : visited
+          ? 0.06
+          : 0.22;
       face.current.emissiveIntensity = pulse;
     }
     if (group.current) {
@@ -61,20 +91,22 @@ function Board({
         <boxGeometry args={[TARGET_HALF.x * 2 + 0.1, TARGET_HALF.y * 2 + 0.1, 0.07]} />
         <meshStandardMaterial color={visited ? "#2a2e38" : accent} />
       </mesh>
-      <Text
-        position={[0, 0, 0.06]}
-        fontSize={0.235}
-        color={visited ? "#8b93a3" : "#f4f6fb"}
-        anchorX="center"
-        anchorY="middle"
-        maxWidth={TARGET_HALF.x * 2 - 0.1}
-      >
-        {label}
-      </Text>
+      {/* label */}
+      <mesh position={[0, 0, 0.056]}>
+        <planeGeometry args={[TARGET_HALF.x * 2 - 0.08, (TARGET_HALF.x * 2 - 0.08) * 0.375]} />
+        <meshBasicMaterial
+          map={labelTex}
+          transparent
+          color={visited ? "#8b93a3" : "#ffffff"}
+          toneMapped={false}
+        />
+      </mesh>
+      {/* visited badge */}
       {visited ? (
-        <Text position={[0.42, 0.26, 0.061]} fontSize={0.16} color="#7de29a" anchorX="center">
-          ✓
-        </Text>
+        <mesh position={[TARGET_HALF.x - 0.1, TARGET_HALF.y - 0.1, 0.06]}>
+          <circleGeometry args={[0.07, 16]} />
+          <meshBasicMaterial color="#7de29a" toneMapped={false} />
+        </mesh>
       ) : null}
     </group>
   );
