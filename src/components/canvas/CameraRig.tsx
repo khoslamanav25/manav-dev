@@ -7,8 +7,8 @@ import { useGame } from "@/game/store";
 
 const HERO_POS = new THREE.Vector3(15, 8.5, 24);
 const HERO_TARGET = new THREE.Vector3(0, 0.5, -2);
-const PLAY_POS = new THREE.Vector3(0, 5.4, 18.6);
-const PLAY_TARGET = new THREE.Vector3(0, 0.9, -5);
+const PLAY_POS = new THREE.Vector3(0, 7.0, 21.8);
+const PLAY_TARGET = new THREE.Vector3(0, 0.6, -3);
 
 // Smoothly moves the camera between the hero overview and the behind-player
 // gameplay framing; adds a gentle idle drift in hero mode.

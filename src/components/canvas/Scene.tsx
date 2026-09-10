@@ -6,6 +6,8 @@ import { EffectComposer, Bloom } from "@react-three/postprocessing";
 import { useGame } from "@/game/store";
 import { THEMES } from "@/game/themes";
 import Court from "./Court";
+import GameEngine from "./GameEngine";
+import Targets from "./Targets";
 import CameraRig from "./CameraRig";
 
 // R3F canvas root. Mounted client-only (dynamic import in GameRoot).
@@ -32,6 +34,8 @@ export default function Scene() {
 
       <CameraRig />
       <Court theme={theme} />
+      <GameEngine theme={theme} />
+      <Targets theme={theme} />
 
       {theme.props.stars ? (
         <Stars radius={130} depth={40} count={2400} factor={4} fade speed={0.6} />

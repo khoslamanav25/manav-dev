@@ -25,6 +25,7 @@ export interface Theme {
     stars?: boolean;
   };
   ball: { color: string; emissive?: string; trail: string };
+  crowd: string[]; // spectator palette
   bloom: boolean;
 }
 
@@ -45,6 +46,7 @@ export const THEMES: Record<ThemeId, Theme> = {
     sun: { color: "#cfe0ff", intensity: 2.6, position: [14, 22, 10] },
     props: { floodlights: true, stars: true },
     ball: { color: "#d9f24b", trail: "#d9f24b" },
+    crowd: ["#e8ecf4", "#7ab4ff", "#d94f5c", "#f2c14e", "#9aa7c4"],
     bloom: false,
   },
   wimbledon: {
@@ -63,6 +65,7 @@ export const THEMES: Record<ThemeId, Theme> = {
     sun: { color: "#fff4d6", intensity: 2.4, position: [-16, 26, 14] },
     props: { ivy: true },
     ball: { color: "#e8f24b", trail: "#f6f3e6" },
+    crowd: ["#f6f3e6", "#a3c585", "#d9a441", "#7c9ec9", "#c98d8d"],
     bloom: false,
   },
   clay: {
@@ -81,6 +84,7 @@ export const THEMES: Record<ThemeId, Theme> = {
     sun: { color: "#ffe3bd", intensity: 2.3, position: [18, 20, -8] },
     props: { dust: true },
     ball: { color: "#e8f24b", trail: "#f2e6d4" },
+    crowd: ["#f2e6d4", "#d97941", "#8c5e3c", "#e8c14e", "#6e8fb3"],
     bloom: false,
   },
   synthwave: {
@@ -99,6 +103,7 @@ export const THEMES: Record<ThemeId, Theme> = {
     sun: { color: "#ff4fd8", intensity: 1.4, position: [0, 24, -30] },
     props: { neon: true, stars: true },
     ball: { color: "#4bf2e8", emissive: "#4bf2e8", trail: "#ff4fd8" },
+    crowd: ["#ff4fd8", "#4bf2e8", "#9d5cff", "#ff8a5c", "#f4f6fb"],
     bloom: true,
   },
 };

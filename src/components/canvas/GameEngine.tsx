@@ -1,0 +1,355 @@
+"use client";
+
+import { useEffect, useMemo, useRef } from "react";
+import { useFrame } from "@react-three/fiber";
+import * as THREE from "three";
+import { COURT, PLAYER, LAUNCHER_POS } from "@/game/dims";
+import { bindInput, consumeSwing, isDown } from "@/game/input";
+import { BALL_RADIUS, BallSim, flightTime, solveArc, stepBall } from "@/game/physics";
+import { useGame } from "@/game/store";
+import { TARGETS, TARGET_HALF } from "@/game/targets";
+import type { Theme } from "@/game/themes";
+
+const MAX_BALLS = 8;
+const SWING_DURATION = 0.32; // full animation
+const SWING_WINDOW = 0.2; // seconds after press during which contact counts
+const CONTACT_HEIGHT = 1.05;
+
+interface SwingState {
+  t: number; // time since press; Infinity = idle
+  connected: boolean;
+}
+
+export default function GameEngine({ theme }: { theme: Theme }) {
+  const phase = useGame((s) => s.phase);
+  const mode = useGame((s) => s.mode);
+  const panelOpen = useGame((s) => s.panel !== null);
+  const registerMiss = useGame((s) => s.registerMiss);
+
+  // ---- mutable sim state (never triggers React renders) ----
+  const playerX = useRef(0);
+  const swing = useRef<SwingState>({ t: Infinity, connected: false });
+  const balls = useRef<BallSim[]>([]);
+  const nextId = useRef(1);
+  const launchTimer = useRef(2.2);
+
+  // ---- scene object refs ----
+  const playerGroup = useRef<THREE.Group>(null);
+  const armGroup = useRef<THREE.Group>(null);
+  const launcherGroup = useRef<THREE.Group>(null);
+  const barrelGlow = useRef<THREE.MeshStandardMaterial>(null);
+  const ballMeshes = useRef<(THREE.Mesh | null)[]>([]);
+
+  useEffect(() => bindInput(), []);
+
+  const active = phase === "playing" && !panelOpen;
+
+  const fireBall = () => {
+    if (balls.current.length >= MAX_BALLS) return;
+    const from = new THREE.Vector3(...LAUNCHER_POS);
+    // aim at a reachable contact point near the baseline
+    const to = new THREE.Vector3(
+      THREE.MathUtils.randFloatSpread(mode === "pro" ? 10.5 : 8),
+      CONTACT_HEIGHT,
+      PLAYER.baselineZ - 0.35,
+    );
+    const T = flightTime(from, to, mode === "pro" ? 1.25 : 1);
+    balls.current.push({
+      id: nextId.current++,
+      phase: "incoming",
+      pos: from.clone(),
+      vel: solveArc(from, to, T),
+      spin: 0,
+      bounces: 0,
+      age: 0,
+      targetId: null,
+    });
+  };
+
+  const returnBall = (b: BallSim) => {
+    const aimId = useGame.getState().aimTargetId;
+    const target = TARGETS.find((t) => t.itemId === aimId) ?? TARGETS[0];
+    const to = new THREE.Vector3(...target.pos);
+
+    if (mode === "pro") {
+      // Timing controls direction: sweet spot ≈ 80ms after the press.
+      const err = (swing.current.t - 0.08) * 26;
+      to.x += THREE.MathUtils.clamp(err, -7, 7) + THREE.MathUtils.randFloatSpread(0.5);
+      to.y += THREE.MathUtils.randFloatSpread(0.3);
+      b.targetId = null; // pro shots have to actually connect
+    } else {
+      b.targetId = target.itemId; // aim assist: solved to hit
+    }
+
+    const T = flightTime(b.pos, to, 1.45);
+    b.vel = solveArc(b.pos, to, T);
+    b.phase = "returning";
+    b.bounces = 0;
+  };
+
+  useFrame((_, rawDt) => {
+    const dt = Math.min(rawDt, 1 / 30); // clamp tab-switch spikes
+
+    // -------- player movement --------
+    if (active) {
+      const left = isDown("KeyA", "ArrowLeft");
+      const right = isDown("KeyD", "ArrowRight");
+      const sprint = isDown("ShiftLeft", "ShiftRight");
+      const speed = sprint ? 10.5 : 7;
+      if (left && !right) playerX.current -= speed * dt;
+      if (right && !left) playerX.current += speed * dt;
+      playerX.current = THREE.MathUtils.clamp(playerX.current, PLAYER.minX, PLAYER.maxX);
+    }
+
+    // -------- swing --------
+    if (active && consumeSwing() && swing.current.t > SWING_DURATION) {
+      swing.current = { t: 0, connected: false };
+    }
+    swing.current.t += dt;
+
+    // -------- launcher --------
+    const incoming = balls.current.filter((b) => b.phase === "incoming").length;
+    if (active && incoming < 2) {
+      launchTimer.current -= dt;
+      if (launchTimer.current <= 0) {
+        fireBall();
+        launchTimer.current = mode === "pro" ? 2.6 : 3.6;
+      }
+    }
+    if (barrelGlow.current) {
+      const telegraphing = active && launchTimer.current < 0.6 && incoming < 2;
+      barrelGlow.current.emissiveIntensity = telegraphing
+        ? 1.6 + Math.sin(performance.now() / 60) * 0.8
+        : 0.25;
+    }
+
+    // -------- aim-assist selection: nearest unvisited board --------
+    {
+      const { hitTargets, aimTargetId, setAimTarget } = useGame.getState();
+      let best: string | null = null;
+      let bestDist = Infinity;
+      for (const t of TARGETS) {
+        if (hitTargets.has(t.itemId)) continue;
+        const d = Math.abs(t.pos[0] - playerX.current);
+        if (d < bestDist) {
+          bestDist = d;
+          best = t.itemId;
+        }
+      }
+      if (best !== aimTargetId) setAimTarget(best);
+    }
+
+    // -------- ball simulation --------
+    const contact = new THREE.Vector3(playerX.current, CONTACT_HEIGHT, PLAYER.baselineZ - 0.35);
+    for (const b of balls.current) {
+      const wasIncoming = b.phase === "incoming";
+      stepBall(b, dt);
+
+      // contact check while the swing window is open
+      if (
+        wasIncoming &&
+        b.phase === "incoming" &&
+        swing.current.t <= SWING_WINDOW &&
+        !swing.current.connected &&
+        b.pos.distanceTo(contact) < PLAYER.reach
+      ) {
+        swing.current.connected = true;
+        returnBall(b);
+      }
+
+      // ball got past the player → streak reset
+      if (wasIncoming && b.phase === "incoming" && b.pos.z > PLAYER.baselineZ + 1.6) {
+        b.phase = "dead";
+        registerMiss();
+      }
+
+      // returning ball vs target boards
+      if (b.phase === "returning" && b.pos.z < -COURT.serviceLineZ + 1.5) {
+        for (const t of TARGETS) {
+          if (b.targetId && b.targetId !== t.itemId) continue;
+          const g = useGame.getState();
+          if (g.hitTargets.has(t.itemId)) continue;
+          if (
+            Math.abs(b.pos.x - t.pos[0]) < TARGET_HALF.x + BALL_RADIUS &&
+            Math.abs(b.pos.y - t.pos[1]) < TARGET_HALF.y + BALL_RADIUS &&
+            Math.abs(b.pos.z - t.pos[2]) < TARGET_HALF.z + BALL_RADIUS
+          ) {
+            b.phase = "dead";
+            g.registerHit(t.itemId, mode === "pro" ? 100 : 50);
+            g.openPanel({ section: t.section, itemId: t.itemId });
+            break;
+          }
+        }
+        // pro-mode spray that bounces twice on the far side counts as a miss
+        if (b.phase === "returning" && b.bounces >= 2) {
+          b.phase = "dead";
+          if (mode === "pro") registerMiss();
+        }
+      }
+    }
+    balls.current = balls.current.filter((b) => b.phase !== "dead");
+
+    // debug probe for playtesting
+    (window as unknown as { __mkSim?: object }).__mkSim = {
+      playerX: playerX.current,
+      active,
+      launchIn: launchTimer.current,
+      balls: balls.current.map((b) => ({
+        phase: b.phase,
+        x: +b.pos.x.toFixed(2),
+        y: +b.pos.y.toFixed(2),
+        z: +b.pos.z.toFixed(2),
+      })),
+    };
+
+    // -------- write sim → scene graph --------
+    if (playerGroup.current) {
+      playerGroup.current.position.x = playerX.current;
+      const lean =
+        (isDown("KeyD", "ArrowRight") ? 1 : 0) - (isDown("KeyA", "ArrowLeft") ? 1 : 0);
+      playerGroup.current.rotation.z = THREE.MathUtils.lerp(
+        playerGroup.current.rotation.z,
+        active ? -lean * 0.12 : 0,
+        0.2,
+      );
+    }
+    if (armGroup.current) {
+      // idle at -0.7; swing sweeps to +1.6 with an eased pop, then returns
+      const st = swing.current.t;
+      let angle = -0.7;
+      if (st < SWING_DURATION) {
+        const k = st / SWING_DURATION;
+        angle = -0.7 + Math.sin(k * Math.PI) * 2.3;
+      }
+      armGroup.current.rotation.y = THREE.MathUtils.lerp(armGroup.current.rotation.y, angle, 0.55);
+    }
+    balls.current.forEach((b, i) => {
+      const m = ballMeshes.current[i];
+      if (!m) return;
+      m.visible = b.phase !== "dead";
+      if (m.visible) {
+        m.position.copy(b.pos);
+        b.spin += dt * b.vel.length() * 3;
+        m.rotation.set(b.spin, b.spin * 0.6, 0);
+      }
+    });
+    for (let i = balls.current.length; i < MAX_BALLS; i++) {
+      const m = ballMeshes.current[i];
+      if (m) m.visible = false;
+    }
+  });
+
+
+
+  // ---------------- visuals ----------------
+  const outfit = useMemo(
+    () => ({ shirt: "#f4f2ec", shorts: "#25324a", skin: "#c98d5f", racquet: "#1c1f26" }),
+    [],
+  );
+
+  return (
+    <group>
+      {/* player */}
+      <group ref={playerGroup} position={[0, 0, PLAYER.baselineZ]}>
+        {/* legs */}
+        <mesh position={[-0.1, 0.36, 0]}>
+          <cylinderGeometry args={[0.055, 0.07, 0.72, 8]} />
+          <meshStandardMaterial color={outfit.skin} />
+        </mesh>
+        <mesh position={[0.1, 0.36, 0]}>
+          <cylinderGeometry args={[0.055, 0.07, 0.72, 8]} />
+          <meshStandardMaterial color={outfit.skin} />
+        </mesh>
+        {/* torso */}
+        <mesh position={[0, 1.0, 0]}>
+          <capsuleGeometry args={[0.21, 0.42, 6, 12]} />
+          <meshStandardMaterial color={outfit.shirt} />
+        </mesh>
+        {/* shorts */}
+        <mesh position={[0, 0.72, 0]}>
+          <cylinderGeometry args={[0.2, 0.17, 0.26, 10]} />
+          <meshStandardMaterial color={outfit.shorts} />
+        </mesh>
+        {/* head */}
+        <mesh position={[0, 1.56, 0]}>
+          <sphereGeometry args={[0.155, 16, 16]} />
+          <meshStandardMaterial color={outfit.skin} />
+        </mesh>
+        {/* cap */}
+        <mesh position={[0, 1.66, 0.02]} rotation={[0.15, 0, 0]}>
+          <cylinderGeometry args={[0.16, 0.165, 0.08, 12]} />
+          <meshStandardMaterial color={outfit.shorts} />
+        </mesh>
+        {/* racquet arm (pivot at shoulder) */}
+        <group ref={armGroup} position={[0.26, 1.18, 0]} rotation={[0, -0.7, 0]}>
+          <mesh position={[0.22, 0, 0]} rotation={[0, 0, -Math.PI / 2]}>
+            <cylinderGeometry args={[0.045, 0.05, 0.44, 8]} />
+            <meshStandardMaterial color={outfit.skin} />
+          </mesh>
+          <mesh position={[0.52, 0, 0]} rotation={[0, 0, -Math.PI / 2]}>
+            <cylinderGeometry args={[0.02, 0.02, 0.28, 8]} />
+            <meshStandardMaterial color={outfit.racquet} />
+          </mesh>
+          <mesh position={[0.78, 0, 0]} rotation={[Math.PI / 2, 0, 0]}>
+            <torusGeometry args={[0.15, 0.022, 8, 20]} />
+            <meshStandardMaterial color={outfit.racquet} />
+          </mesh>
+          <mesh position={[0.78, 0, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+            <circleGeometry args={[0.14, 16]} />
+            <meshStandardMaterial
+              color="#e8e6df"
+              transparent
+              opacity={0.35}
+              side={THREE.DoubleSide}
+            />
+          </mesh>
+        </group>
+      </group>
+
+      {/* ball launcher */}
+      <group ref={launcherGroup} position={LAUNCHER_POS}>
+        <mesh position={[0, 0, 0]}>
+          <boxGeometry args={[0.9, 0.8, 1.1]} />
+          <meshStandardMaterial color="#2a2f3a" />
+        </mesh>
+        <mesh position={[0, 0.28, 0.62]} rotation={[Math.PI / 2 - 0.35, 0, 0]}>
+          <cylinderGeometry args={[0.16, 0.19, 0.7, 14]} />
+          <meshStandardMaterial color="#3a4152" />
+        </mesh>
+        <mesh position={[0, 0.33, 0.9]} rotation={[Math.PI / 2 - 0.35, 0, 0]}>
+          <torusGeometry args={[0.17, 0.035, 8, 20]} />
+          <meshStandardMaterial
+            ref={barrelGlow}
+            color={theme.ball.color}
+            emissive={theme.ball.color}
+            emissiveIntensity={0.25}
+          />
+        </mesh>
+        {[-1, 1].map((s) => (
+          <mesh key={s} position={[s * 0.5, -0.32, 0]} rotation={[0, 0, Math.PI / 2]}>
+            <cylinderGeometry args={[0.18, 0.18, 0.12, 14]} />
+            <meshStandardMaterial color="#14171e" />
+          </mesh>
+        ))}
+      </group>
+
+      {/* ball pool */}
+      {Array.from({ length: MAX_BALLS }).map((_, i) => (
+        <mesh
+          key={i}
+          ref={(el) => {
+            ballMeshes.current[i] = el;
+          }}
+          visible={false}
+        >
+          <sphereGeometry args={[BALL_RADIUS, 14, 14]} />
+          <meshStandardMaterial
+            color={theme.ball.color}
+            emissive={theme.ball.emissive ?? theme.ball.color}
+            emissiveIntensity={theme.ball.emissive ? 1.4 : 0.25}
+          />
+        </mesh>
+      ))}
+    </group>
+  );
+}

@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { COURT } from "@/game/dims";
 import type { Theme } from "@/game/themes";
+import Crowd from "./Crowd";
 
 const { halfLength, halfWidthDoubles, halfWidthSingles, serviceLineZ, lineWidth } =
   COURT;
@@ -183,6 +184,7 @@ export default function Court({ theme }: { theme: Theme }) {
       <Lines theme={theme} />
       <Net theme={theme} />
       <Stands theme={theme} />
+      <Crowd theme={theme} />
       {theme.props.floodlights ? <Floodlights theme={theme} /> : null}
       {theme.props.neon ? <SynthwaveExtras theme={theme} /> : null}
     </group>

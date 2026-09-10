@@ -6,6 +6,7 @@ import { useGame, hydrateGameFromStorage } from "@/game/store";
 import Nav from "@/components/ui/Nav";
 import Hero from "@/components/ui/Hero";
 import Panel from "@/components/ui/Panel";
+import HelpModal from "@/components/ui/HelpModal";
 import Hud from "@/components/ui/Hud";
 import { IDENTITY } from "@/game/content";
 
@@ -73,6 +74,7 @@ export default function GameRoot() {
 
       {phase === "hero" ? <Hero /> : null}
       <Hud />
+      <HelpModal />
       <Panel />
     </div>
   );

@@ -20,6 +20,7 @@ interface GameState {
   muted: boolean;
   panel: PanelTarget | null;
   hitTargets: Set<string>; // item ids already smashed
+  aimTargetId: string | null; // aim-assist highlight
   helpSeen: boolean;
 
   enterCourt: () => void;
@@ -32,6 +33,7 @@ interface GameState {
   closePanel: () => void;
   registerHit: (itemId: string, points: number) => void;
   registerMiss: () => void;
+  setAimTarget: (id: string | null) => void;
   markHelpSeen: () => void;
 }
 
@@ -63,6 +65,7 @@ export const useGame = create<GameState>((set, get) => ({
   muted: true,
   panel: null,
   hitTargets: new Set(),
+  aimTargetId: null,
   helpSeen: false,
 
   enterCourt: () => set({ phase: "playing" }),
@@ -94,8 +97,15 @@ export const useGame = create<GameState>((set, get) => ({
       return { score, streak, best, hitTargets };
     }),
   registerMiss: () => set({ streak: 0 }),
+  setAimTarget: (aimTargetId) =>
+    set((s) => (s.aimTargetId === aimTargetId ? {} : { aimTargetId })),
   markHelpSeen: () => set({ helpSeen: true }),
 }));
+
+// Debug handle for playtesting (harmless in prod; no secrets in this store).
+if (typeof window !== "undefined") {
+  (window as unknown as { __mkGame?: typeof useGame }).__mkGame = useGame;
+}
 
 // Hydrate persisted bits on the client after mount (avoids SSR/localStorage mismatch).
 export function hydrateGameFromStorage() {
