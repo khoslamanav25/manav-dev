@@ -58,14 +58,14 @@ body {
   letter-spacing: -0.04em;
 }
 
-/* Hero readability scrim: keeps the title legible over any court theme */
-.hero-scrim {
-  background: radial-gradient(
-    ellipse 62% 58% at 50% 46%,
-    color-mix(in srgb, var(--hero-bg) 86%, transparent) 0%,
-    color-mix(in srgb, var(--hero-bg) 55%, transparent) 55%,
-    transparent 78%
-  );
+/* Layered halo keeps the hero title legible over any court scene while
+   leaving the scene itself fully visible. Halo color follows the theme. */
+.hero-title {
+  text-shadow:
+    0 0 2px var(--hero-bg),
+    0 0 10px var(--hero-bg),
+    0 2px 28px var(--hero-bg),
+    0 4px 56px color-mix(in srgb, var(--hero-bg) 85%, transparent);
 }
 
 /* Scorebug plate: broadcast-graphics chrome for chips and bars */

@@ -3,9 +3,9 @@
 My personal website — a playable tennis court.
 
 A ball machine on the far side feeds you balls. Move along the baseline, time your
-swing, and return them at the target boards standing across the net — every board is a
-piece of my resume (experience, projects, education, skills, about). Hit one and its
-match report opens. Prefer reading? The nav opens everything directly, and
+swing, and return them at the four target boards standing across the net — Experience,
+Projects, Education, and Skills. Hit one and its match report opens. Prefer reading?
+The nav opens everything directly, and
 [`/text`](https://manav-dev.vercel.app/text) is a zero-JS plain version.
 
 ## Details worth finding
