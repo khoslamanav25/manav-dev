@@ -1,11 +1,28 @@
 "use client";
 
 import { useEffect } from "react";
+import dynamic from "next/dynamic";
 import { useGame, hydrateGameFromStorage } from "@/game/store";
 import Nav from "@/components/ui/Nav";
 import Hero from "@/components/ui/Hero";
 import Panel from "@/components/ui/Panel";
+import Hud from "@/components/ui/Hud";
 import { IDENTITY } from "@/game/content";
+
+// The 3D scene is client-only and heavy — load it lazily, never on the server.
+const Scene = dynamic(() => import("@/components/canvas/Scene"), {
+  ssr: false,
+  loading: () => (
+    <div
+      aria-hidden
+      className="absolute inset-0"
+      style={{
+        background:
+          "linear-gradient(to bottom, var(--hero-bg) 0%, var(--accent) 140%)",
+      }}
+    />
+  ),
+});
 
 // Client shell that owns the whole interactive site: scene, overlays, panels.
 // The 3D canvas itself is added in the next milestone; until then the scene
@@ -29,15 +46,8 @@ export default function GameRoot() {
 
   return (
     <div className="fixed inset-0 overflow-hidden bg-[var(--hero-bg)] text-[var(--hero-fg)]">
-      {/* Scene layer — placeholder gradient until the Canvas lands */}
-      <div
-        aria-hidden
-        className="absolute inset-0"
-        style={{
-          background:
-            "linear-gradient(to bottom, var(--hero-bg) 0%, var(--accent) 140%)",
-        }}
-      />
+      {/* 3D scene layer */}
+      <Scene />
 
       {/* Top chrome */}
       <header className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-center justify-between p-6 sm:px-10">
@@ -62,6 +72,7 @@ export default function GameRoot() {
       </header>
 
       {phase === "hero" ? <Hero /> : null}
+      <Hud />
       <Panel />
     </div>
   );
