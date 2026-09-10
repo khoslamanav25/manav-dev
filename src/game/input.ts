@@ -60,5 +60,16 @@ export function consumeSwing() {
 }
 
 export function queueSwing() {
-  swingQueued = true; // used by touch controls later
+  swingQueued = true; // tap-to-swing on touch
+}
+
+// Touch steering: drag sets a court-x target the player runs toward.
+let touchX: number | null = null;
+
+export function setTouchTarget(x: number | null) {
+  touchX = x;
+}
+
+export function getTouchTarget() {
+  return touchX;
 }

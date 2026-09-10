@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { COURT, PLAYER, LAUNCHER_POS } from "@/game/dims";
-import { bindInput, consumeSwing, isDown } from "@/game/input";
+import { bindInput, consumeSwing, getTouchTarget, isDown } from "@/game/input";
 import { BALL_RADIUS, BallSim, flightTime, solveArc, stepBall } from "@/game/physics";
 import { emit } from "@/game/events";
 import { onKonami } from "@/game/input";
@@ -122,6 +122,11 @@ export default function GameEngine({ theme }: { theme: Theme }) {
       const speed = sprint ? 10.5 : 7;
       if (left && !right) playerX.current -= speed * dt;
       if (right && !left) playerX.current += speed * dt;
+      const tx = getTouchTarget();
+      if (tx !== null && !left && !right) {
+        const d = tx - playerX.current;
+        playerX.current += THREE.MathUtils.clamp(d, -10.5 * dt, 10.5 * dt);
+      }
       playerX.current = THREE.MathUtils.clamp(playerX.current, PLAYER.minX, PLAYER.maxX);
     }
 

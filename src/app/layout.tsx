@@ -13,8 +13,23 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Manav Khosla",
-  description: "Personal website of Manav Khosla, software engineer.",
+  title: {
+    default: "Manav Khosla",
+    template: "%s · Manav Khosla",
+  },
+  description:
+    "Software engineer at the University of Michigan. Step on court and rally with a ball machine to unlock my experience, projects, and more — or read it straight.",
+  openGraph: {
+    title: "Manav Khosla",
+    description:
+      "A playable tennis-court portfolio. Return balls at the targets to open my resume.",
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: "Manav Khosla",
+    description: "A playable tennis-court portfolio.",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
