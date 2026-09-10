@@ -3,6 +3,13 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* Theme-driven UI accents — set on <html> via data-mk-theme (see themes.ts). */
+  --accent: #2f6fed;
+  --hero-fg: #16181d;
+  --hero-bg: #f4f2ec;
+  --panel-bg: rgba(248, 247, 243, 0.92);
+  --panel-fg: #16181d;
 }
 
 @theme inline {
@@ -19,8 +26,54 @@
   }
 }
 
+/* Night-flavored themes want light hero text over the dark scene. */
+[data-mk-theme="usopen"],
+[data-mk-theme="synthwave"] {
+  --hero-fg: #f4f6fb;
+  --hero-bg: #10131c;
+  --panel-bg: rgba(16, 19, 28, 0.92);
+  --panel-fg: #f4f6fb;
+}
+[data-mk-theme="usopen"] {
+  --accent: #7ab4ff;
+}
+[data-mk-theme="synthwave"] {
+  --accent: #ff4fd8;
+}
+[data-mk-theme="wimbledon"] {
+  --accent: #3e7c4f;
+}
+[data-mk-theme="clay"] {
+  --accent: #c4552b;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+.font-display {
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  letter-spacing: -0.04em;
+}
+
+/* Content panel slide-in */
+.panel-slide {
+  animation: panel-slide-in 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes panel-slide-in {
+  from {
+    transform: translateX(48px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .panel-slide {
+    animation: none;
+  }
 }
