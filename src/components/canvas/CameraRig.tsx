@@ -5,8 +5,8 @@ import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { useGame } from "@/game/store";
 
-const HERO_POS = new THREE.Vector3(15, 8.5, 24);
-const HERO_TARGET = new THREE.Vector3(0, 0.5, -2);
+const HERO_POS = new THREE.Vector3(-13.5, 2.1, 9.5);
+const HERO_TARGET = new THREE.Vector3(2.5, 1.0, -5);
 const PLAY_POS = new THREE.Vector3(0, 7.0, 21.8);
 const PLAY_TARGET = new THREE.Vector3(0, 0.6, -3);
 
@@ -26,9 +26,9 @@ export default function CameraRig() {
       : HERO_POS.clone()
           .add(
             new THREE.Vector3(
-              Math.sin(t.current * 0.14) * 1.6,
-              Math.sin(t.current * 0.09) * 0.5,
-              0,
+              Math.sin(t.current * 0.1) * 0.9,
+              Math.sin(t.current * 0.07) * 0.25,
+              Math.sin(t.current * 0.05) * 2.4, // slow courtside dolly
             ),
           );
     const desiredTarget = playing ? PLAY_TARGET : HERO_TARGET;

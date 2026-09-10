@@ -58,22 +58,38 @@ body {
   letter-spacing: -0.04em;
 }
 
-/* Content panel slide-in */
-.panel-slide {
-  animation: panel-slide-in 320ms cubic-bezier(0.22, 1, 0.36, 1);
+/* Scorebug plate: broadcast-graphics chrome for chips and bars */
+.scorebug {
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, currentColor 22%, transparent);
+  background: color-mix(in srgb, var(--panel-bg) 88%, transparent);
+  color: var(--panel-fg);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.25);
+  backdrop-filter: blur(8px);
 }
-@keyframes panel-slide-in {
-  from {
-    transform: translateX(48px);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
+
+/* Bouncing tennis-ball punctuation in the hero lockup */
+.ball-dot {
+  width: 0.42em;
+  height: 0.42em;
+  border-radius: 9999px;
+  background: radial-gradient(circle at 32% 30%, #f4ff6e, #cddc2e 70%);
+  box-shadow: 0 0 14px rgb(217 242 75 / 0.6);
+  animation: ball-bounce 1.15s cubic-bezier(0.28, 0, 0.6, 1) infinite alternate;
+}
+@keyframes ball-bounce {
+  from { transform: translateY(-0.42em); }
+  to { transform: translateY(0.04em); }
+}
+
+/* Match-report sheet rise */
+.panel-rise {
+  animation: panel-rise-in 360ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes panel-rise-in {
+  from { transform: translateY(56px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .panel-slide {
-    animation: none;
-  }
+  .panel-rise, .ball-dot { animation: none; }
 }

@@ -3,13 +3,33 @@
 const keys = new Set<string>();
 let swingQueued = false;
 
+// ↑↑↓↓←→←→BA — "MANAV 3000" turbo mode
+const KONAMI = [
+  "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown",
+  "ArrowLeft", "ArrowRight", "ArrowLeft", "ArrowRight", "KeyB", "KeyA",
+];
+let konamiAt = 0;
+let onKonamiCb: (() => void) | null = null;
+
+export function onKonami(cb: () => void) {
+  onKonamiCb = cb;
+}
+
+function trackKonami(code: string) {
+  konamiAt = code === KONAMI[konamiAt] ? konamiAt + 1 : code === KONAMI[0] ? 1 : 0;
+  if (konamiAt === KONAMI.length) {
+    konamiAt = 0;
+    onKonamiCb?.();
+  }
+}
+
 export function bindInput() {
   const down = (e: KeyboardEvent) => {
     // Don't steal keys while the user is typing or a panel is focused elsewhere.
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)
       return;
     keys.add(e.code);
-    console.log("[input] down", e.code);
+    trackKonami(e.code);
     if (e.code === "Space") {
       swingQueued = true;
       e.preventDefault(); // stop page scroll

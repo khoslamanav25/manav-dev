@@ -8,6 +8,7 @@ import { THEMES } from "@/game/themes";
 import Court from "./Court";
 import GameEngine from "./GameEngine";
 import Targets from "./Targets";
+import Effects from "./Effects";
 import CameraRig from "./CameraRig";
 
 // R3F canvas root. Mounted client-only (dynamic import in GameRoot).
@@ -36,6 +37,7 @@ export default function Scene() {
       <Court theme={theme} />
       <GameEngine theme={theme} />
       <Targets theme={theme} />
+      <Effects theme={theme} />
 
       {theme.props.stars ? (
         <Stars radius={130} depth={40} count={2400} factor={4} fade speed={0.6} />

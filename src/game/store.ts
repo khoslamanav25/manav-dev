@@ -22,6 +22,7 @@ interface GameState {
   hitTargets: Set<string>; // item ids already smashed
   aimTargetId: string | null; // aim-assist highlight
   helpSeen: boolean;
+  turboUntil: number; // epoch ms; Konami code easter egg
 
   enterCourt: () => void;
   leaveCourt: () => void;
@@ -34,6 +35,7 @@ interface GameState {
   registerHit: (itemId: string, points: number) => void;
   registerMiss: () => void;
   setAimTarget: (id: string | null) => void;
+  startTurbo: (ms: number) => void;
   markHelpSeen: () => void;
 }
 
@@ -67,6 +69,7 @@ export const useGame = create<GameState>((set, get) => ({
   hitTargets: new Set(),
   aimTargetId: null,
   helpSeen: false,
+  turboUntil: 0,
 
   enterCourt: () => set({ phase: "playing" }),
   leaveCourt: () => set({ phase: "hero", panel: null }),
@@ -100,6 +103,7 @@ export const useGame = create<GameState>((set, get) => ({
   setAimTarget: (aimTargetId) =>
     set((s) => (s.aimTargetId === aimTargetId ? {} : { aimTargetId })),
   markHelpSeen: () => set({ helpSeen: true }),
+  startTurbo: (ms) => set({ turboUntil: Date.now() + ms }),
 }));
 
 // Debug handle for playtesting (harmless in prod; no secrets in this store).

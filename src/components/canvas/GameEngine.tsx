@@ -6,6 +6,8 @@ import * as THREE from "three";
 import { COURT, PLAYER, LAUNCHER_POS } from "@/game/dims";
 import { bindInput, consumeSwing, isDown } from "@/game/input";
 import { BALL_RADIUS, BallSim, flightTime, solveArc, stepBall } from "@/game/physics";
+import { emit } from "@/game/events";
+import { onKonami } from "@/game/input";
 import { useGame } from "@/game/store";
 import { TARGETS, TARGET_HALF } from "@/game/targets";
 import type { Theme } from "@/game/themes";
@@ -41,6 +43,15 @@ export default function GameEngine({ theme }: { theme: Theme }) {
   const ballMeshes = useRef<(THREE.Mesh | null)[]>([]);
 
   useEffect(() => bindInput(), []);
+  useEffect(() => {
+    onKonami(() => {
+      useGame.getState().startTurbo(20000);
+      emit({ type: "turbo" });
+    });
+  }, []);
+  const wobble = useRef(0);
+  const rapidShots = useRef(0);
+  const trailClock = useRef(0);
 
   const active = phase === "playing" && !panelOpen;
 
@@ -64,11 +75,24 @@ export default function GameEngine({ theme }: { theme: Theme }) {
       age: 0,
       targetId: null,
     });
+    emit({ type: "launch" });
   };
 
   const returnBall = (b: BallSim) => {
+    emit({ type: "pop", x: b.pos.x, y: b.pos.y, z: b.pos.z });
     const aimId = useGame.getState().aimTargetId;
-    const target = TARGETS.find((t) => t.itemId === aimId) ?? TARGETS[0];
+    const target = TARGETS.find((t) => t.itemId === aimId);
+
+    // all boards cleared → revenge mode: fire back at the machine itself
+    if (!target) {
+      const to = new THREE.Vector3(LAUNCHER_POS[0], LAUNCHER_POS[1] + 0.15, LAUNCHER_POS[2] + 0.4);
+      const T = flightTime(b.pos, to, 1.5);
+      b.vel = solveArc(b.pos, to, T);
+      b.phase = "returning";
+      b.targetId = null;
+      b.bounces = 0;
+      return;
+    }
     const to = new THREE.Vector3(...target.pos);
 
     if (mode === "pro") {
@@ -113,7 +137,13 @@ export default function GameEngine({ theme }: { theme: Theme }) {
       launchTimer.current -= dt;
       if (launchTimer.current <= 0) {
         fireBall();
-        launchTimer.current = mode === "pro" ? 2.6 : 3.6;
+        let cadence = mode === "pro" ? 2.6 : 3.6;
+        if (Date.now() < useGame.getState().turboUntil) cadence *= 0.35;
+        if (rapidShots.current > 0) {
+          rapidShots.current -= 1;
+          cadence = 0.9;
+        }
+        launchTimer.current = cadence;
       }
     }
     if (barrelGlow.current) {
@@ -143,7 +173,11 @@ export default function GameEngine({ theme }: { theme: Theme }) {
     const contact = new THREE.Vector3(playerX.current, CONTACT_HEIGHT, PLAYER.baselineZ - 0.35);
     for (const b of balls.current) {
       const wasIncoming = b.phase === "incoming";
+      const bouncesBefore = b.bounces;
       stepBall(b, dt);
+      if (b.bounces > bouncesBefore && b.pos.y <= BALL_RADIUS + 0.05) {
+        emit({ type: "bounce", x: b.pos.x, y: b.pos.y, z: b.pos.z });
+      }
 
       // contact check while the swing window is open
       if (
@@ -161,6 +195,21 @@ export default function GameEngine({ theme }: { theme: Theme }) {
       if (wasIncoming && b.phase === "incoming" && b.pos.z > PLAYER.baselineZ + 1.6) {
         b.phase = "dead";
         registerMiss();
+        emit({ type: "miss" });
+      }
+
+      // returning ball vs the launcher (easter egg / revenge mode)
+      if (
+        b.phase === "returning" &&
+        Math.abs(b.pos.x - LAUNCHER_POS[0]) < 0.62 &&
+        Math.abs(b.pos.y - LAUNCHER_POS[1]) < 0.62 &&
+        Math.abs(b.pos.z - LAUNCHER_POS[2]) < 0.75
+      ) {
+        b.phase = "dead";
+        wobble.current = 1;
+        rapidShots.current = 3;
+        launchTimer.current = Math.min(launchTimer.current, 0.8);
+        emit({ type: "launcherHit" });
       }
 
       // returning ball vs target boards
@@ -176,6 +225,9 @@ export default function GameEngine({ theme }: { theme: Theme }) {
           ) {
             b.phase = "dead";
             g.registerHit(t.itemId, mode === "pro" ? 100 : 50);
+            emit({ type: "targetHit", x: b.pos.x, y: b.pos.y, z: b.pos.z });
+            const streakNow = useGame.getState().streak;
+            if (streakNow > 0 && streakNow % 10 === 0) emit({ type: "streak", count: streakNow });
             g.openPanel({ section: t.section, itemId: t.itemId });
             break;
           }
@@ -223,6 +275,10 @@ export default function GameEngine({ theme }: { theme: Theme }) {
       }
       armGroup.current.rotation.y = THREE.MathUtils.lerp(armGroup.current.rotation.y, angle, 0.55);
     }
+    trailClock.current += dt;
+    const emitTrail = trailClock.current > 0.045;
+    if (emitTrail) trailClock.current = 0;
+    const turbo = Date.now() < useGame.getState().turboUntil;
     balls.current.forEach((b, i) => {
       const m = ballMeshes.current[i];
       if (!m) return;
@@ -231,8 +287,29 @@ export default function GameEngine({ theme }: { theme: Theme }) {
         m.position.copy(b.pos);
         b.spin += dt * b.vel.length() * 3;
         m.rotation.set(b.spin, b.spin * 0.6, 0);
+        if (emitTrail && b.vel.lengthSq() > 16) {
+          emit({ type: "trail", x: b.pos.x, y: b.pos.y, z: b.pos.z });
+        }
+        const mat = m.material as THREE.MeshStandardMaterial;
+        if (turbo) {
+          mat.color.setHSL((performance.now() / 900 + i * 0.13) % 1, 0.9, 0.6);
+          mat.emissive.copy(mat.color);
+          mat.emissiveIntensity = 1.2;
+        }
       }
     });
+    if (launcherGroup.current) {
+      if (wobble.current > 0.001) {
+        wobble.current = Math.max(0, wobble.current - dt * 1.6);
+        launcherGroup.current.rotation.z =
+          Math.sin(wobble.current * 22) * 0.28 * wobble.current;
+        launcherGroup.current.rotation.x =
+          Math.sin(wobble.current * 17) * 0.15 * wobble.current;
+      } else {
+        launcherGroup.current.rotation.z = 0;
+        launcherGroup.current.rotation.x = 0;
+      }
+    }
     for (let i = balls.current.length; i < MAX_BALLS; i++) {
       const m = ballMeshes.current[i];
       if (m) m.visible = false;

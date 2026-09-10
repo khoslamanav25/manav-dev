@@ -20,10 +20,19 @@ export default function HelpModal() {
 
   return (
     <div className="absolute inset-0 z-40 flex items-center justify-center p-6">
-      <div className="w-full max-w-md rounded-2xl bg-[var(--panel-bg)] p-8 text-[var(--panel-fg)] shadow-2xl backdrop-blur-md">
-        <h2 className="font-display mb-6 text-3xl font-extrabold lowercase tracking-tight">
-          how to play
-        </h2>
+      <div className="w-full max-w-md overflow-hidden rounded-xl bg-[var(--panel-bg)] text-[var(--panel-fg)] shadow-2xl backdrop-blur-md">
+        <header className="flex items-center gap-3 border-b border-current/10 bg-[var(--accent)]/15 px-8 py-4">
+          <span className="h-6 w-1.5 rounded-full bg-[var(--accent)]" aria-hidden />
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-[0.35em] opacity-60">
+              pre-match briefing
+            </p>
+            <h2 className="font-display text-xl font-extrabold uppercase tracking-tight">
+              beat the machine
+            </h2>
+          </div>
+        </header>
+        <div className="p-8 pt-6">
         <div className="space-y-4 font-mono text-sm">
           <div className="flex items-center justify-between">
             <span className="uppercase tracking-widest opacity-70">Move</span>
@@ -48,10 +57,11 @@ export default function HelpModal() {
         </p>
         <button
           onClick={markHelpSeen}
-          className="mt-6 w-full rounded-lg bg-[var(--panel-fg)] py-3 font-mono text-xs font-bold uppercase tracking-[0.2em] text-[var(--panel-bg)] transition hover:opacity-90 active:scale-[0.98]"
+          className="mt-6 w-full rounded-lg bg-[var(--accent)] py-3 font-mono text-xs font-bold uppercase tracking-[0.2em] text-[var(--hero-bg)] transition hover:opacity-90 active:scale-[0.98]"
         >
-          got it
+          let&apos;s rally
         </button>
+        </div>
       </div>
     </div>
   );

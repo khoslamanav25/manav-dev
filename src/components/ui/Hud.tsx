@@ -15,6 +15,8 @@ export default function Hud() {
   const streak = useGame((s) => s.streak);
   const best = useGame((s) => s.best);
   const hitCount = useGame((s) => s.hitTargets.size);
+  const muted = useGame((s) => s.muted);
+  const toggleMuted = useGame((s) => s.toggleMuted);
 
   const chip =
     "pointer-events-auto rounded-full border border-current/25 bg-[var(--panel-bg)] text-[var(--panel-fg)] shadow-lg";
@@ -76,6 +78,14 @@ export default function Hud() {
             ))}
           </div>
         ) : null}
+        <button
+          onClick={toggleMuted}
+          title={muted ? "Enable sound" : "Mute"}
+          aria-label={muted ? "Enable sound" : "Mute"}
+          className={`px-3.5 py-2 font-mono text-[13px] transition hover:scale-105 active:scale-95 ${chip}`}
+        >
+          {muted ? "🔇" : "🔊"}
+        </button>
         <button
           onClick={cycleTheme}
           title="Switch court"

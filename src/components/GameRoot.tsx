@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import dynamic from "next/dynamic";
+import { bindAudio } from "@/game/audio";
 import { useGame, hydrateGameFromStorage } from "@/game/store";
 import Nav from "@/components/ui/Nav";
 import Hero from "@/components/ui/Hero";
@@ -35,6 +36,7 @@ export default function GameRoot() {
 
   useEffect(() => {
     hydrateGameFromStorage();
+    return bindAudio();
   }, []);
 
   // Reflect theme onto <html> so CSS vars (accent, hero/panel colors) follow.
@@ -53,21 +55,23 @@ export default function GameRoot() {
       {/* Top chrome */}
       <header className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-center justify-between p-6 sm:px-10">
         <div className="pointer-events-auto">
-          {phase === "playing" ? (
-            <button
-              onClick={leaveCourt}
-              className="rounded-full border border-current/30 px-4 py-1.5 font-mono text-[11px] uppercase tracking-[0.15em] opacity-80 transition hover:opacity-100"
-            >
-              leave court
-            </button>
-          ) : (
-            <div className="font-mono text-xs uppercase tracking-[0.2em]">
-              <span className="font-bold">{IDENTITY.name}</span>
-              <span className="ml-3 hidden opacity-60 sm:inline">
-                {IDENTITY.tagline}
+          <div className="scorebug flex items-stretch overflow-hidden font-mono text-[11px] uppercase tracking-[0.15em]">
+            <span className="flex items-center bg-[var(--accent)] px-3 font-bold text-[var(--hero-bg)]">
+              MK
+            </span>
+            {phase === "playing" ? (
+              <button
+                onClick={leaveCourt}
+                className="px-3.5 py-2 opacity-80 transition hover:bg-[var(--accent)]/20 hover:opacity-100"
+              >
+                ← exit rally
+              </button>
+            ) : (
+              <span className="hidden items-center px-3.5 py-2 opacity-80 sm:flex">
+                {IDENTITY.name}
               </span>
-            </div>
-          )}
+            )}
+          </div>
         </div>
         <Nav />
       </header>
