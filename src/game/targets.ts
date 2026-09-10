@@ -40,22 +40,21 @@ function layout(): TargetDef[] {
     }
   }
 
-  back.forEach((t, i) => {
-    const x = -4.6 + (9.2 / (back.length - 1)) * i;
+  // Keep a clear center lane (|x| < ~1.5) so the launcher stays visible and
+  // its feeds fly through the gap rather than out of a wall of boards.
+  const BACK_X = [-5.6, -4.1, -2.6, 2.6, 4.1, 5.6];
+  const FRONT_X = [-4.4, -2.4, 2.4, 4.4];
+  const slots = [
+    ...BACK_X.map((x) => ({ x, z: -10.6, y: 1.05 })),
+    ...FRONT_X.map((x) => ({ x, z: -7.8, y: 0.95 })),
+  ];
+  [...back, ...front].forEach((t, i) => {
+    const s = slots[i];
     defs.push({
       itemId: t.id,
       section: t.section,
       label: SHORT_LABELS[t.id] ?? t.id,
-      pos: [x, 1.05, -10.6],
-    });
-  });
-  front.forEach((t, i) => {
-    const x = -2.6 + (5.2 / Math.max(front.length - 1, 1)) * i;
-    defs.push({
-      itemId: t.id,
-      section: t.section,
-      label: SHORT_LABELS[t.id] ?? t.id,
-      pos: [x, 0.95, -7.6],
+      pos: [s.x, s.y, s.z],
     });
   });
   return defs;
