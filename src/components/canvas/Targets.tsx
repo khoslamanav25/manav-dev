@@ -5,6 +5,7 @@ import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { TARGETS, TARGET_HALF } from "@/game/targets";
 import { useGame } from "@/game/store";
+import type { SectionId } from "@/game/content";
 import type { Theme } from "@/game/themes";
 
 // Board labels are drawn to canvas textures synchronously — no font fetch,
@@ -34,18 +35,18 @@ function makeLabelTexture(label: string): THREE.CanvasTexture {
 }
 
 function Board({
-  itemId,
+  id,
   label,
   pos,
   theme,
 }: {
-  itemId: string;
+  id: SectionId;
   label: string;
   pos: [number, number, number];
   theme: Theme;
 }) {
-  const visited = useGame((s) => s.hitTargets.has(itemId));
-  const aimed = useGame((s) => s.aimTargetId === itemId);
+  const visited = useGame((s) => s.hitTargets.has(id));
+  const aimed = useGame((s) => s.aimTargetId === id);
   const face = useRef<THREE.MeshStandardMaterial>(null);
   const group = useRef<THREE.Group>(null);
   const labelTex = useMemo(() => makeLabelTexture(label), [label]);
@@ -116,7 +117,7 @@ export default function Targets({ theme }: { theme: Theme }) {
   return (
     <group>
       {TARGETS.map((t) => (
-        <Board key={t.itemId} itemId={t.itemId} label={t.label} pos={t.pos} theme={theme} />
+        <Board key={t.id} id={t.id} label={t.label} pos={t.pos} theme={theme} />
       ))}
     </group>
   );

@@ -13,6 +13,7 @@ export default function Hero() {
 
   return (
     <div className="pointer-events-none absolute inset-0 z-20 flex flex-col items-center justify-center px-6 text-center text-[var(--hero-fg)]">
+      <div className="hero-scrim absolute inset-0 -z-10" aria-hidden />
       <p className="scorebug mb-6 px-4 py-1.5 font-mono text-[11px] uppercase tracking-[0.35em]">
         center court · {TARGETS.length} targets on the line
       </p>

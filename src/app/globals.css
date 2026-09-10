@@ -58,6 +58,16 @@ body {
   letter-spacing: -0.04em;
 }
 
+/* Hero readability scrim: keeps the title legible over any court theme */
+.hero-scrim {
+  background: radial-gradient(
+    ellipse 62% 58% at 50% 46%,
+    color-mix(in srgb, var(--hero-bg) 86%, transparent) 0%,
+    color-mix(in srgb, var(--hero-bg) 55%, transparent) 55%,
+    transparent 78%
+  );
+}
+
 /* Scorebug plate: broadcast-graphics chrome for chips and bars */
 .scorebug {
   border-radius: 6px;

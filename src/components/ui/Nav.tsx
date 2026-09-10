@@ -13,7 +13,7 @@ export default function Nav() {
   return (
     <nav className="pointer-events-auto scorebug flex items-stretch overflow-hidden font-mono text-[11px] uppercase tracking-[0.14em]">
       {SECTIONS.map((section, i) => {
-        const done = section.items.every((it) => hitTargets.has(it.id));
+        const done = hitTargets.has(section.id);
         const activeNow = panel?.section === section.id;
         return (
           <button

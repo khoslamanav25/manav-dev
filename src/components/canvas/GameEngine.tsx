@@ -84,7 +84,7 @@ export default function GameEngine({ theme }: { theme: Theme }) {
   const returnBall = (b: BallSim) => {
     emit({ type: "pop", x: b.pos.x, y: b.pos.y, z: b.pos.z });
     const aimId = useGame.getState().aimTargetId;
-    const target = TARGETS.find((t) => t.itemId === aimId);
+    const target = TARGETS.find((t) => t.id === aimId);
 
     // all boards cleared → revenge mode: fire back at the machine itself
     if (!target) {
@@ -105,7 +105,7 @@ export default function GameEngine({ theme }: { theme: Theme }) {
       to.y += THREE.MathUtils.randFloatSpread(0.3);
       b.targetId = null; // pro shots have to actually connect
     } else {
-      b.targetId = target.itemId; // aim assist: solved to hit
+      b.targetId = target.id; // aim assist: solved to hit
     }
 
     const T = flightTime(b.pos, to, 1.45);
@@ -167,11 +167,11 @@ export default function GameEngine({ theme }: { theme: Theme }) {
       let best: string | null = null;
       let bestDist = Infinity;
       for (const t of TARGETS) {
-        if (hitTargets.has(t.itemId)) continue;
+        if (hitTargets.has(t.id)) continue;
         const d = Math.abs(t.pos[0] - playerX.current);
         if (d < bestDist) {
           bestDist = d;
-          best = t.itemId;
+          best = t.id;
         }
       }
       if (best !== aimTargetId) setAimTarget(best);
@@ -223,20 +223,20 @@ export default function GameEngine({ theme }: { theme: Theme }) {
       // returning ball vs target boards
       if (b.phase === "returning" && b.pos.z < -COURT.serviceLineZ + 1.5) {
         for (const t of TARGETS) {
-          if (b.targetId && b.targetId !== t.itemId) continue;
+          if (b.targetId && b.targetId !== t.id) continue;
           const g = useGame.getState();
-          if (g.hitTargets.has(t.itemId)) continue;
+          if (g.hitTargets.has(t.id)) continue;
           if (
             Math.abs(b.pos.x - t.pos[0]) < TARGET_HALF.x + BALL_RADIUS &&
             Math.abs(b.pos.y - t.pos[1]) < TARGET_HALF.y + BALL_RADIUS &&
             Math.abs(b.pos.z - t.pos[2]) < TARGET_HALF.z + BALL_RADIUS
           ) {
             b.phase = "dead";
-            g.registerHit(t.itemId, mode === "pro" ? 100 : 50);
+            g.registerHit(t.id, mode === "pro" ? 100 : 50);
             emit({ type: "targetHit", x: b.pos.x, y: b.pos.y, z: b.pos.z });
             const streakNow = useGame.getState().streak;
             if (streakNow > 0 && streakNow % 10 === 0) emit({ type: "streak", count: streakNow });
-            g.openPanel({ section: t.section, itemId: t.itemId });
+            g.openPanel({ section: t.id });
             break;
           }
         }

@@ -29,7 +29,7 @@ export default function Panel() {
 
   if (!panel) return null;
   const section = getSection(panel.section);
-  const done = section.items.filter((it) => hitTargets.has(it.id)).length;
+  const sectionHit = hitTargets.has(section.id);
 
   return (
     <div className="fixed inset-0 z-40 flex items-end justify-center sm:p-6" role="dialog" aria-modal="true">
@@ -53,9 +53,11 @@ export default function Panel() {
               {section.label}
             </h2>
           </div>
-          <span className="scorebug hidden px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.2em] sm:block">
-            {done}/{section.items.length} hit
-          </span>
+          {sectionHit ? (
+            <span className="scorebug hidden px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.2em] text-[#7de29a] sm:block">
+              ✓ target hit
+            </span>
+          ) : null}
           <button
             onClick={closePanel}
             aria-label="Close"
@@ -80,7 +82,7 @@ export default function Panel() {
                       : "border border-current/25 opacity-70"
                   }`}
                 >
-                  {hitTargets.has(item.id) ? "✓" : String(idx + 1).padStart(2, "0")}
+                  {String(idx + 1).padStart(2, "0")}
                 </span>
                 {idx < section.items.length - 1 ? (
                   <span className="mt-2 w-px flex-1 bg-current/10" aria-hidden />
@@ -96,16 +98,9 @@ export default function Panel() {
                     {item.meta}
                   </p>
                 ) : null}
-                {item.bullets.length > 0 ? (
-                  <ul className="mt-2.5 space-y-2 text-[15px] leading-relaxed opacity-90">
-                    {item.bullets.map((b, i) => (
-                      <li key={i} className="flex gap-2.5">
-                        <span className="mt-[9px] h-1 w-1 shrink-0 rounded-full bg-[var(--accent)]" aria-hidden />
-                        <span>{b}</span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
+                <p className="mt-2.5 text-[15px] leading-relaxed opacity-90">
+                  {item.summary}
+                </p>
                 {item.tags && item.tags.length > 0 ? (
                   <p className="mt-3 flex flex-wrap gap-1.5">
                     {item.tags.map((t) => (
