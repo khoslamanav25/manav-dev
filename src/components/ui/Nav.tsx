@@ -3,29 +3,28 @@
 import { SECTIONS } from "@/game/content";
 import { useGame } from "@/game/store";
 
-// Scorebug-style section chips (top-right during play). Numbered segments
-// with an accent tick, not plain text links.
+// Section chips (top-right): separate scorebug-style buttons so they read as
+// clickable, with a completion tick per section. Scrolls sideways when narrow.
 export default function Nav() {
   const openPanel = useGame((s) => s.openPanel);
   const panel = useGame((s) => s.panel);
   const hitTargets = useGame((s) => s.hitTargets);
 
   return (
-    <nav className="pointer-events-auto scorebug flex items-stretch overflow-hidden font-mono text-[11px] uppercase tracking-[0.14em]">
-      {SECTIONS.map((section, i) => {
+    <nav className="pointer-events-auto flex min-w-0 items-stretch gap-1.5 overflow-x-auto whitespace-nowrap py-1 font-mono text-[11px] uppercase tracking-[0.14em] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      {SECTIONS.map((section) => {
         const done = hitTargets.has(section.id);
         const activeNow = panel?.section === section.id;
         return (
           <button
             key={section.id}
             onClick={() => openPanel({ section: section.id })}
-            className={`flex items-center gap-1.5 border-r border-current/15 px-3.5 py-2 transition last:border-r-0 hover:bg-[var(--accent)]/20 ${
-              activeNow ? "bg-[var(--accent)]/25" : ""
+            className={`flex shrink-0 cursor-pointer items-center gap-1.5 rounded-md border border-current/25 px-3.5 py-2 text-[var(--panel-fg)] shadow-lg backdrop-blur-sm transition hover:bg-[var(--accent)]/25 active:scale-95 ${
+              activeNow ? "bg-[var(--accent)]/25" : "bg-[var(--panel-bg)]/90"
             }`}
           >
             <span className={`h-1.5 w-1.5 rounded-full ${done ? "bg-[#7de29a]" : "bg-[var(--accent)]"}`} />
-            <span className="hidden sm:inline">{section.label}</span>
-            <span className="sm:hidden">{String(i + 1).padStart(2, "0")}</span>
+            <span>{section.label}</span>
           </button>
         );
       })}

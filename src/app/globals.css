@@ -78,6 +78,20 @@ body {
   backdrop-filter: blur(8px);
 }
 
+/* Pointer-media gates: show keyboard hints on fine pointers, touch hints on
+   coarse ones. Inline display so they slot into text/pill content. */
+.touch-only {
+  display: none;
+}
+@media (pointer: coarse) {
+  .touch-only {
+    display: inline;
+  }
+  .fine-only {
+    display: none;
+  }
+}
+
 /* Bouncing tennis-ball punctuation in the hero lockup */
 .ball-dot {
   width: 0.42em;

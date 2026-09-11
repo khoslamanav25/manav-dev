@@ -34,6 +34,7 @@ interface GameState {
   closePanel: () => void;
   registerHit: (itemId: string, points: number) => void;
   registerMiss: () => void;
+  resetGame: () => void;
   setAimTarget: (id: string | null) => void;
   startTurbo: (ms: number) => void;
   markHelpSeen: () => void;
@@ -100,6 +101,9 @@ export const useGame = create<GameState>((set, get) => ({
       return { score, streak, best, hitTargets };
     }),
   registerMiss: () => set({ streak: 0 }),
+  // Fresh rally: wipe the run, keep best/mode/theme/helpSeen.
+  resetGame: () =>
+    set({ score: 0, streak: 0, hitTargets: new Set(), panel: null, aimTargetId: null }),
   setAimTarget: (aimTargetId) =>
     set((s) => (s.aimTargetId === aimTargetId ? {} : { aimTargetId })),
   markHelpSeen: () => set({ helpSeen: true }),

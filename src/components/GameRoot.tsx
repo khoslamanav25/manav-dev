@@ -6,6 +6,7 @@ import { bindAudio } from "@/game/audio";
 import { queueSwing, setTouchTarget } from "@/game/input";
 import { useRef } from "react";
 import { useGame, hydrateGameFromStorage } from "@/game/store";
+import { TARGETS } from "@/game/targets";
 import Nav from "@/components/ui/Nav";
 import Hero from "@/components/ui/Hero";
 import Panel from "@/components/ui/Panel";
@@ -27,6 +28,41 @@ const Scene = dynamic(() => import("@/components/canvas/Scene"), {
     />
   ),
 });
+
+// In-flow score strip (row 2 of the header while playing) — living in the
+// header stack means it can never collide with the nav chips.
+function ScoreStrip() {
+  const score = useGame((s) => s.score);
+  const streak = useGame((s) => s.streak);
+  const best = useGame((s) => s.best);
+  const mode = useGame((s) => s.mode);
+  const hitCount = useGame((s) => s.hitTargets.size);
+
+  return (
+    <div className="pointer-events-none flex flex-wrap items-center justify-center gap-x-4 gap-y-1 rounded-full border border-current/25 bg-[var(--panel-bg)] px-4 py-2.5 font-mono text-xs uppercase tracking-[0.15em] text-[var(--panel-fg)] shadow-lg sm:gap-x-5 sm:px-6">
+      <span>
+        score <span className="font-bold">{score}</span>
+      </span>
+      <span className={streak >= 3 ? "text-[var(--accent)]" : ""}>
+        streak <span className="font-bold">{streak}</span>
+        {mode === "pro" && streak >= 2 ? (
+          <span className="font-bold"> ×{Math.min(streak, 5)}</span>
+        ) : null}
+      </span>
+      {best > 0 ? (
+        <span className="opacity-70">
+          best <span className="font-bold">{best}</span>
+        </span>
+      ) : null}
+      <span className="opacity-70">
+        targets{" "}
+        <span className="font-bold">
+          {hitCount}/{TARGETS.length}
+        </span>
+      </span>
+    </div>
+  );
+}
 
 // Client shell that owns the whole interactive site: scene, overlays, panels.
 // The 3D canvas itself is added in the next milestone; until then the scene
@@ -83,28 +119,36 @@ export default function GameRoot() {
         <Scene />
       </div>
 
-      {/* Top chrome */}
-      <header className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-center justify-between p-6 sm:px-10">
-        <div className="pointer-events-auto">
-          <div className="scorebug flex items-stretch overflow-hidden font-mono text-[11px] uppercase tracking-[0.15em]">
-            <span className="flex items-center bg-[var(--accent)] px-3 font-bold text-[var(--hero-bg)]">
-              MK
-            </span>
-            {phase === "playing" ? (
-              <button
-                onClick={leaveCourt}
-                className="px-3.5 py-2 opacity-80 transition hover:bg-[var(--accent)]/20 hover:opacity-100"
-              >
-                ← exit rally
-              </button>
-            ) : (
-              <span className="hidden items-center px-3.5 py-2 opacity-80 sm:flex">
-                {IDENTITY.name}
+      {/* Top chrome: row 1 = monogram + nav, row 2 = score strip (in flow,
+          so the two can never overlap at any width) */}
+      <header className="pointer-events-none absolute inset-x-0 top-0 z-30 flex flex-col p-4 sm:p-6 sm:px-10">
+        <div className="flex items-center justify-between gap-3">
+          <div className="pointer-events-auto shrink-0">
+            <div className="scorebug flex items-stretch overflow-hidden font-mono text-[11px] uppercase tracking-[0.15em]">
+              <span className="flex items-center bg-[var(--accent)] px-3 font-bold text-[var(--hero-bg)]">
+                MK
               </span>
-            )}
+              {phase === "playing" ? (
+                <button
+                  onClick={leaveCourt}
+                  className="cursor-pointer px-3.5 py-2 opacity-80 transition hover:bg-[var(--accent)]/20 hover:opacity-100"
+                >
+                  ← exit rally
+                </button>
+              ) : (
+                <span className="hidden items-center px-3.5 py-2 opacity-80 sm:flex">
+                  {IDENTITY.name}
+                </span>
+              )}
+            </div>
           </div>
+          <Nav />
         </div>
-        <Nav />
+        {phase === "playing" ? (
+          <div className="mt-2 flex justify-center">
+            <ScoreStrip />
+          </div>
+        ) : null}
       </header>
 
       {phase === "hero" ? <Hero /> : null}

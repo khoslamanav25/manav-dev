@@ -9,13 +9,30 @@ import { BALL_RADIUS, BallSim, flightTime, solveArc, stepBall } from "@/game/phy
 import { emit } from "@/game/events";
 import { onKonami } from "@/game/input";
 import { useGame } from "@/game/store";
+import type { GameMode } from "@/game/store";
 import { TARGETS, TARGET_HALF } from "@/game/targets";
+import type { TargetDef } from "@/game/targets";
 import type { Theme } from "@/game/themes";
 
 const MAX_BALLS = 8;
 const SWING_DURATION = 0.32; // full animation
-const SWING_WINDOW = 0.2; // seconds after press during which contact counts
 const CONTACT_HEIGHT = 1.05;
+
+interface ModeParams {
+  cadence: number; // seconds between launches
+  pace: number; // flightTime divisor — higher = faster incoming balls
+  spread: number; // lateral band the launcher aims into
+  swingWindow: number; // seconds after press during which contact counts
+  aimAssist: boolean; // highlighted board + solved-to-hit returns
+}
+
+// Per-mode difficulty tuning. Pro is a real jump: faster balls on a quicker
+// cadence across the full court, a tight contact window, and no aim assist —
+// shot direction comes entirely from swing timing.
+const MODES: Record<GameMode, ModeParams> = {
+  easy: { cadence: 3.6, pace: 1, spread: 8, swingWindow: 0.2, aimAssist: true },
+  pro: { cadence: 2, pace: 1.5, spread: 11, swingWindow: 0.11, aimAssist: false },
+};
 
 interface SwingState {
   t: number; // time since press; Infinity = idle
@@ -60,14 +77,15 @@ export default function GameEngine({ theme }: { theme: Theme }) {
 
   const fireBall = () => {
     if (balls.current.length >= MAX_BALLS) return;
+    const M = MODES[mode];
     const from = new THREE.Vector3(...LAUNCHER_POS);
     // aim at a reachable contact point near the baseline
     const to = new THREE.Vector3(
-      THREE.MathUtils.randFloatSpread(mode === "pro" ? 10.5 : 8),
+      THREE.MathUtils.randFloatSpread(M.spread),
       CONTACT_HEIGHT,
       PLAYER.baselineZ - 0.35,
     );
-    const T = flightTime(from, to, mode === "pro" ? 1.25 : 1);
+    const T = flightTime(from, to, M.pace);
     balls.current.push({
       id: nextId.current++,
       phase: "incoming",
@@ -83,8 +101,25 @@ export default function GameEngine({ theme }: { theme: Theme }) {
 
   const returnBall = (b: BallSim) => {
     emit({ type: "pop", x: b.pos.x, y: b.pos.y, z: b.pos.z });
-    const aimId = useGame.getState().aimTargetId;
-    const target = TARGETS.find((t) => t.id === aimId);
+    const M = MODES[mode];
+    const { hitTargets, aimTargetId } = useGame.getState();
+
+    let target: TargetDef | undefined;
+    if (M.aimAssist) {
+      target = TARGETS.find((t) => t.id === aimTargetId);
+    } else {
+      // no highlight in pro, but the direction calc still needs a reference
+      // board: nearest unvisited board to the player's x
+      let bestDist = Infinity;
+      for (const t of TARGETS) {
+        if (hitTargets.has(t.id)) continue;
+        const d = Math.abs(t.pos[0] - playerX.current);
+        if (d < bestDist) {
+          bestDist = d;
+          target = t;
+        }
+      }
+    }
 
     // all boards cleared → revenge mode: fire back at the machine itself
     if (!target) {
@@ -98,11 +133,13 @@ export default function GameEngine({ theme }: { theme: Theme }) {
     }
     const to = new THREE.Vector3(...target.pos);
 
-    if (mode === "pro") {
-      // Timing controls direction: sweet spot ≈ 80ms after the press.
-      const err = (swing.current.t - 0.08) * 26;
-      to.x += THREE.MathUtils.clamp(err, -7, 7) + THREE.MathUtils.randFloatSpread(0.5);
-      to.y += THREE.MathUtils.randFloatSpread(0.3);
+    if (!M.aimAssist) {
+      // Timing controls direction: sweet spot ≈ 55ms after the press.
+      const err = THREE.MathUtils.clamp((swing.current.t - 0.055) * 48, -9, 9);
+      to.x += err + THREE.MathUtils.randFloatSpread(0.5);
+      // late shots drop low enough to clip the net (stepBall handles the block)
+      to.y += THREE.MathUtils.randFloatSpread(0.3) - err * 0.45;
+      to.z += THREE.MathUtils.randFloatSpread(1.8);
       b.targetId = null; // pro shots have to actually connect
     } else {
       b.targetId = target.id; // aim assist: solved to hit
@@ -145,7 +182,7 @@ export default function GameEngine({ theme }: { theme: Theme }) {
       launchTimer.current -= dt;
       if (launchTimer.current <= 0) {
         fireBall();
-        let cadence = mode === "pro" ? 2.6 : 3.6;
+        let cadence = MODES[mode].cadence;
         if (Date.now() < useGame.getState().turboUntil) cadence *= 0.35;
         if (rapidShots.current > 0) {
           rapidShots.current -= 1;
@@ -164,17 +201,22 @@ export default function GameEngine({ theme }: { theme: Theme }) {
     // -------- aim-assist selection: nearest unvisited board --------
     {
       const { hitTargets, aimTargetId, setAimTarget } = useGame.getState();
-      let best: string | null = null;
-      let bestDist = Infinity;
-      for (const t of TARGETS) {
-        if (hitTargets.has(t.id)) continue;
-        const d = Math.abs(t.pos[0] - playerX.current);
-        if (d < bestDist) {
-          bestDist = d;
-          best = t.id;
+      if (!MODES[mode].aimAssist) {
+        // pro: no hint — the Board glow keys off aimTargetId
+        if (aimTargetId !== null) setAimTarget(null);
+      } else {
+        let best: string | null = null;
+        let bestDist = Infinity;
+        for (const t of TARGETS) {
+          if (hitTargets.has(t.id)) continue;
+          const d = Math.abs(t.pos[0] - playerX.current);
+          if (d < bestDist) {
+            bestDist = d;
+            best = t.id;
+          }
         }
+        if (best !== aimTargetId) setAimTarget(best);
       }
-      if (best !== aimTargetId) setAimTarget(best);
     }
 
     // -------- ball simulation --------
@@ -191,7 +233,7 @@ export default function GameEngine({ theme }: { theme: Theme }) {
       if (
         wasIncoming &&
         b.phase === "incoming" &&
-        swing.current.t <= SWING_WINDOW &&
+        swing.current.t <= MODES[mode].swingWindow &&
         !swing.current.connected &&
         b.pos.distanceTo(contact) < PLAYER.reach
       ) {
