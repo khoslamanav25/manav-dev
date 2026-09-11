@@ -40,7 +40,7 @@ export default function Hud() {
             <div
               className={`flex overflow-hidden rounded-full font-mono text-[11px] uppercase tracking-[0.15em] ${chip}`}
             >
-              {(["easy", "pro"] as const).map((m) => (
+              {(["easy", "medium", "hard"] as const).map((m) => (
                 <button
                   key={m}
                   onClick={() => setMode(m)}

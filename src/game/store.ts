@@ -2,7 +2,7 @@ import { create } from "zustand";
 import type { SectionId } from "./content";
 
 export type ThemeId = "usopen" | "wimbledon" | "clay" | "synthwave";
-export type GameMode = "easy" | "pro";
+export type GameMode = "easy" | "medium" | "hard";
 export type GamePhase = "hero" | "playing";
 
 export interface PanelTarget {
@@ -93,7 +93,7 @@ export const useGame = create<GameState>((set, get) => ({
   registerHit: (itemId, points) =>
     set((s) => {
       const streak = s.streak + 1;
-      const score = s.score + points * (s.mode === "pro" ? Math.min(streak, 5) : 1);
+      const score = s.score + points * (s.mode !== "easy" ? Math.min(streak, 5) : 1);
       const best = Math.max(s.best, score);
       safeSet("mk-best", String(best));
       const hitTargets = new Set(s.hitTargets);

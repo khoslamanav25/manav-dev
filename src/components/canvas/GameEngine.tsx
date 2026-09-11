@@ -24,14 +24,31 @@ interface ModeParams {
   spread: number; // lateral band the launcher aims into
   swingWindow: number; // seconds after press during which contact counts
   aimAssist: boolean; // highlighted board + solved-to-hit returns
+  errSweetSpot: number; // seconds after press where timing error is zero
+  errGain: number; // meters of spray per second of timing error
+  errClamp: number; // max lateral spray
+  points: number; // score per board hit
+  maxIncoming: number; // concurrent balls in the air
 }
 
-// Per-mode difficulty tuning. Pro is a real jump: faster balls on a quicker
-// cadence across the full court, a tight contact window, and no aim assist —
-// shot direction comes entirely from swing timing.
+// Per-mode difficulty tuning. Medium is a real jump: faster balls on a
+// quicker cadence across the full court, a tight contact window, and no aim
+// assist — shot direction comes entirely from swing timing. Hard is brutal:
+// double-speed feeds every 1.1s, three balls in the air, a 55ms window, and
+// spray so harsh only near-perfect contact scores.
 const MODES: Record<GameMode, ModeParams> = {
-  easy: { cadence: 3.6, pace: 1, spread: 8, swingWindow: 0.2, aimAssist: true },
-  pro: { cadence: 2, pace: 1.5, spread: 11, swingWindow: 0.11, aimAssist: false },
+  easy: {
+    cadence: 3.6, pace: 1, spread: 8, swingWindow: 0.2, aimAssist: true,
+    errSweetSpot: 0, errGain: 0, errClamp: 0, points: 50, maxIncoming: 2,
+  },
+  medium: {
+    cadence: 2, pace: 1.5, spread: 11, swingWindow: 0.11, aimAssist: false,
+    errSweetSpot: 0.055, errGain: 48, errClamp: 9, points: 100, maxIncoming: 2,
+  },
+  hard: {
+    cadence: 1.1, pace: 1.9, spread: 11.5, swingWindow: 0.055, aimAssist: false,
+    errSweetSpot: 0.03, errGain: 80, errClamp: 10, points: 250, maxIncoming: 3,
+  },
 };
 
 interface SwingState {
@@ -134,8 +151,12 @@ export default function GameEngine({ theme }: { theme: Theme }) {
     const to = new THREE.Vector3(...target.pos);
 
     if (!M.aimAssist) {
-      // Timing controls direction: sweet spot ≈ 55ms after the press.
-      const err = THREE.MathUtils.clamp((swing.current.t - 0.055) * 48, -9, 9);
+      // Timing controls direction: spray grows with distance from the sweet spot.
+      const err = THREE.MathUtils.clamp(
+        (swing.current.t - M.errSweetSpot) * M.errGain,
+        -M.errClamp,
+        M.errClamp,
+      );
       to.x += err + THREE.MathUtils.randFloatSpread(0.5);
       // late shots drop low enough to clip the net (stepBall handles the block)
       to.y += THREE.MathUtils.randFloatSpread(0.3) - err * 0.45;
@@ -178,7 +199,7 @@ export default function GameEngine({ theme }: { theme: Theme }) {
 
     // -------- launcher --------
     const incoming = balls.current.filter((b) => b.phase === "incoming").length;
-    if (active && incoming < 2) {
+    if (active && incoming < MODES[mode].maxIncoming) {
       launchTimer.current -= dt;
       if (launchTimer.current <= 0) {
         fireBall();
@@ -192,7 +213,7 @@ export default function GameEngine({ theme }: { theme: Theme }) {
       }
     }
     if (barrelGlow.current) {
-      const telegraphing = active && launchTimer.current < 0.6 && incoming < 2;
+      const telegraphing = active && launchTimer.current < 0.6 && incoming < MODES[mode].maxIncoming;
       barrelGlow.current.emissiveIntensity = telegraphing
         ? 1.6 + Math.sin(performance.now() / 60) * 0.8
         : 0.25;
@@ -274,7 +295,7 @@ export default function GameEngine({ theme }: { theme: Theme }) {
             Math.abs(b.pos.z - t.pos[2]) < TARGET_HALF.z + BALL_RADIUS
           ) {
             b.phase = "dead";
-            g.registerHit(t.id, mode === "pro" ? 100 : 50);
+            g.registerHit(t.id, MODES[mode].points);
             emit({ type: "targetHit", x: b.pos.x, y: b.pos.y, z: b.pos.z });
             const streakNow = useGame.getState().streak;
             if (streakNow > 0 && streakNow % 10 === 0) emit({ type: "streak", count: streakNow });
@@ -285,7 +306,7 @@ export default function GameEngine({ theme }: { theme: Theme }) {
         // pro-mode spray that bounces twice on the far side counts as a miss
         if (b.phase === "returning" && b.bounces >= 2) {
           b.phase = "dead";
-          if (mode === "pro") registerMiss();
+          if (mode !== "easy") registerMiss();
         }
       }
     }

@@ -45,7 +45,7 @@ function ScoreStrip() {
       </span>
       <span className={streak >= 3 ? "text-[var(--accent)]" : ""}>
         streak <span className="font-bold">{streak}</span>
-        {mode === "pro" && streak >= 2 ? (
+        {mode !== "easy" && streak >= 2 ? (
           <span className="font-bold"> ×{Math.min(streak, 5)}</span>
         ) : null}
       </span>
