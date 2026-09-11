@@ -55,7 +55,16 @@ export default function TextPage() {
                   {item.meta}
                 </p>
               ) : null}
-              <p className="mt-2 leading-relaxed">{item.summary}</p>
+              {item.summary ? (
+                <p className="mt-2 leading-relaxed">{item.summary}</p>
+              ) : null}
+              {item.bullets ? (
+                <ul className="mt-2 list-disc space-y-1 pl-5">
+                  {item.bullets.map((b, i) => (
+                    <li key={i}>{b}</li>
+                  ))}
+                </ul>
+              ) : null}
               {item.tags && item.tags.length > 0 ? (
                 <p className="mt-2 flex flex-wrap gap-1.5">
                   {item.tags.map((t) => (

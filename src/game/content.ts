@@ -14,7 +14,8 @@ export interface ContentItem {
   title: string;
   subtitle?: string;
   meta?: string; // dates / location line
-  summary: string; // short paragraph, not resume bullets
+  summary?: string; // short paragraph style
+  bullets?: string[]; // direct list style (education, skills)
   tags?: string[];
   link?: { label: string; href: string };
 }
@@ -46,7 +47,7 @@ export const SECTIONS: Section[] = [
         subtitle: "AutoSitu (Y Combinator W26)",
         meta: "Aug 2026 – Present · Remote",
         summary:
-          "I build agentic systems for construction intelligence at AutoSitu. My work spans a Gemini agent pipeline that turns knowledge graphs of 3D CAD elements into priced material lists, a PostGIS engine that checks whether a proposed building actually fits its lot across hundreds of real customer sites, and a multi-agent reviewer that compares drawings against subcontractor bids. That last one took estimators from two hours per bid package to under five minutes, with cited evidence for every flag.",
+          "I build agentic systems for construction intelligence at AutoSitu. My work spans a Gemini agent pipeline that turns knowledge graphs of 3D CAD elements into priced material lists, a PostGIS engine that checks whether a proposed building actually fits its lot across hundreds of real customer sites, and a multi-agent reviewer that compares drawings against subcontractor bids.",
         tags: ["Gemini", "Knowledge Graphs", "PostGIS", "Multi-Agent"],
       },
       {
@@ -117,13 +118,23 @@ export const SECTIONS: Section[] = [
     heading: "education",
     items: [
       {
-        id: "umich",
-        title: "University of Michigan",
-        subtitle:
-          "B.S.E. Computer Science (Engineering) · B.S. Pure Mathematics (LSA)",
+        id: "umich-cs",
+        title: "B.S.E. Computer Science",
+        subtitle: "University of Michigan · College of Engineering",
         meta: "Ann Arbor, MI",
-        summary:
-          "Dual degree: computer science in the engineering school, pure mathematics in LSA. Coursework so far includes data structures & algorithms, distributed systems, computer architecture, and discrete math. Outside class I work with Atlas Digital tech consulting, the V1 startup accelerator, and the quant team at Michigan Investment Group.",
+        bullets: [
+          "Relevant coursework: Data Structures & Algorithms, Distributed Systems, Introductory Computer Architecture, Discrete Math",
+          "Activities: Atlas Digital Tech Consulting, V1 Startup Accelerator, Michigan Investment Group (Quant)",
+        ],
+      },
+      {
+        id: "umich-math",
+        title: "B.S. Pure Mathematics",
+        subtitle: "University of Michigan · College of LSA",
+        meta: "Ann Arbor, MI",
+        bullets: [
+          "Relevant coursework: Calculus I, Calculus II, Proof-Based Linear Algebra, Advanced Calculus I (Intro to Real Analysis)",
+        ],
       },
     ],
   },
@@ -135,35 +146,18 @@ export const SECTIONS: Section[] = [
       {
         id: "languages",
         title: "Languages & Frameworks",
-        summary:
-          "Day to day I'm mostly in Python and TypeScript-flavored JavaScript, with Java and C/C++ from coursework and systems work, plus React.js and React Native on the frontend and Bash holding everything together.",
-        tags: [
-          "Java",
-          "Python",
-          "C/C++",
-          "Bash",
-          "JavaScript",
-          "React.js",
-          "React Native",
+        bullets: [
+          "Languages: Java, Python, C/C++, Bash, JavaScript",
+          "Frameworks: React.js, React Native",
         ],
       },
       {
         id: "technologies",
         title: "Technologies",
-        summary:
-          "Comfortable across the infrastructure stack: containers and orchestration, Linux and HPC scheduling, infrastructure-as-code, AWS, and the tooling that ships models and keeps them observable.",
-        tags: [
-          "Docker",
-          "Kubernetes",
-          "Linux",
-          "Slurm",
-          "Git",
-          "CI/CD",
-          "Terraform",
-          "Packer",
-          "AWS",
-          "Supabase",
-          "TensorFlow",
+        bullets: [
+          "Docker, Kubernetes, Linux, Slurm",
+          "Git, CI/CD, Terraform, Packer",
+          "AWS, Supabase, TensorFlow",
         ],
       },
     ],

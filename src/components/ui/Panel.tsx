@@ -98,9 +98,24 @@ export default function Panel() {
                     {item.meta}
                   </p>
                 ) : null}
-                <p className="mt-2.5 text-[15px] leading-relaxed opacity-90">
-                  {item.summary}
-                </p>
+                {item.summary ? (
+                  <p className="mt-2.5 text-[15px] leading-relaxed opacity-90">
+                    {item.summary}
+                  </p>
+                ) : null}
+                {item.bullets ? (
+                  <ul className="mt-2.5 space-y-2 text-[15px] leading-relaxed opacity-90">
+                    {item.bullets.map((b, i) => (
+                      <li key={i} className="flex gap-2.5">
+                        <span
+                          className="mt-[9px] h-1 w-1 shrink-0 rounded-full bg-[var(--accent)]"
+                          aria-hidden
+                        />
+                        <span>{b}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
                 {item.tags && item.tags.length > 0 ? (
                   <p className="mt-3 flex flex-wrap gap-1.5">
                     {item.tags.map((t) => (
