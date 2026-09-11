@@ -124,7 +124,7 @@ export const SECTIONS: Section[] = [
         meta: "Ann Arbor, MI",
         bullets: [
           "Relevant coursework: Data Structures & Algorithms, Distributed Systems, Introductory Computer Architecture, Discrete Math",
-          "Activities: Atlas Digital Tech Consulting, V1 Startup Accelerator, Michigan Investment Group (Quant)",
+          "Activities: Atlas Digital Tech Consulting, V1 Startup Accelerator, Michigan Investment Group (Quant), Phi Beta Lambda (Professional Business Fraternity)",
         ],
       },
       {
