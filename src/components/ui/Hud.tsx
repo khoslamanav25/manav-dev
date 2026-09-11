@@ -7,6 +7,7 @@ import { THEMES } from "@/game/themes";
 // lives in the GameRoot header stack so it can't collide with the nav.
 export default function Hud() {
   const phase = useGame((s) => s.phase);
+  const panelOpen = useGame((s) => s.panel !== null);
   const theme = useGame((s) => s.theme);
   const cycleTheme = useGame((s) => s.cycleTheme);
   const mode = useGame((s) => s.mode);
@@ -17,6 +18,8 @@ export default function Hud() {
 
   const chip =
     "pointer-events-auto rounded-full border border-current/25 bg-[var(--panel-bg)] text-[var(--panel-fg)] shadow-lg";
+
+  if (panelOpen) return null;
 
   return (
     <>
